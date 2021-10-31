@@ -1,7 +1,5 @@
 /*
- * Open SlotCar Controller
- * 
- * Arduino UNO code for a Slot Car controller.
+ * Arduino on ATTiny84 code for the Open Slot Car Controller
  * 
  * @author Fredrik Peteri (fredrik@peteri.se)
  */
@@ -10,14 +8,16 @@ const bool DEBUG = false;
 const long DEBUG_DELAY = 50; // In milliseconds
 const int TICK_TIME = 10; // In milliseconds
 
-const int THROTTLE_INPUT_PIN = A0;
-const int THROTTLE_LOW = 528;
-const int THROTTLE_HIGH = 800;
-const int THROTTLE_OUTPUT_PIN = 9;
+const int THROTTLE_INPUT_PIN = A7;
+const int THROTTLE_LOW = 260;
+const int THROTTLE_HIGH = 760;
+const int THROTTLE_OUTPUT_PIN = 5;
 const int FULL_THROTTLE_LED_PIN = 10;
 
-const int BRAKE_ADJ_PIN = A1;
-const int BRAKE_OUTPUT_PIN = 11;
+const int BRAKE_ADJ_PIN = A0;
+const int ATTACK_ADJ_PIN = A1; // Unused
+const int TRACTION_ADJ_PIN = A2; // Unused
+const int BRAKE_OUTPUT_PIN = 6;
 
 int throttleIn = 0;
 int throttle = 0;
@@ -39,6 +39,10 @@ void setup() {
 	pinMode(FULL_THROTTLE_LED_PIN, OUTPUT);
 	pinMode(BRAKE_OUTPUT_PIN, OUTPUT);
 	digitalWrite(BRAKE_OUTPUT_PIN, LOW);
+
+  // Set prescaler for TIMER1 to enable faster PWM
+  TCCR1B &= ~(bit(CS10) | bit(CS11) | bit(CS12)); // Clear CS10, CS11 and CD12
+  TCCR1B |= bit(CS10); // No prescaler
 }
 
 void loop() {
@@ -66,7 +70,7 @@ void loop() {
 /* Set throttle pin on with PWM, but make sure that brake pin is low first */
 void safeForward() {
 	brake = 0;
-	digitalWrite(BRAKE_OUTPUT_PIN, brake);
+	analogWrite(BRAKE_OUTPUT_PIN, brake);
 	throttle = map(throttleIn, 0, 255, attack, 255);
 	delay(1);
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
@@ -76,8 +80,8 @@ void safeForward() {
 void safeBrake() {
 	throttle = 0;
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
-	delay(1);
 	brake = brakeAdjust;
+	delay(1);
 	analogWrite(BRAKE_OUTPUT_PIN, brake);
 }
 
@@ -121,4 +125,3 @@ void printBar(short width, int high, int x) {
 	Serial.print(buff);
 	Serial.println(x);
 }
-
