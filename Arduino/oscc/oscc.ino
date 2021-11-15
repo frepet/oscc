@@ -1,6 +1,6 @@
 /*
  * Arduino on ATTiny84 code for the Open Slot Car Controller
- * 
+ *
  * @author Fredrik Peteri (fredrik@peteri.se)
  */
 
@@ -15,16 +15,16 @@ const int THROTTLE_OUTPUT_PIN = 5;
 const int FULL_THROTTLE_LED_PIN = 10;
 
 const int BRAKE_ADJ_PIN = A0;
-const int ATTACK_ADJ_PIN = A1; // Unused
+const int ATTACK_ADJ_PIN = A1;
 const int TRACTION_ADJ_PIN = A2; // Unused
 const int BRAKE_OUTPUT_PIN = 6;
 
 int throttleIn = 0;
 int throttle = 0;
 int brake = 0;
-int attack = 50;
 
 int brakeAdjust = 0;
+int attackAdjust = 0;
 
 long lastTick = millis();
 long lastDebugTick = millis();
@@ -40,9 +40,9 @@ void setup() {
 	pinMode(BRAKE_OUTPUT_PIN, OUTPUT);
 	digitalWrite(BRAKE_OUTPUT_PIN, LOW);
 
-  // Set prescaler for TIMER1 to enable faster PWM
-  TCCR1B &= ~(bit(CS10) | bit(CS11) | bit(CS12)); // Clear CS10, CS11 and CD12
-  TCCR1B |= bit(CS10); // No prescaler
+	// Set prescaler for TIMER1 to enable faster PWM
+	TCCR1B &= ~(bit(CS10) | bit(CS11) | bit(CS12)); // Clear CS10, CS11 and CD12
+	TCCR1B |= bit(CS10); // No prescaler
 }
 
 void loop() {
@@ -71,7 +71,7 @@ void loop() {
 void safeForward() {
 	brake = 0;
 	analogWrite(BRAKE_OUTPUT_PIN, brake);
-	throttle = map(throttleIn, 0, 255, attack, 255);
+	throttle = map(throttleIn, 0, 255, attackAdjust, 255);
 	delay(1);
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
 }
@@ -95,6 +95,7 @@ void getThrottle() {
 /* Reads the settings potentiometers */
 void updatePots() {
 	brakeAdjust = map(analogRead(BRAKE_ADJ_PIN), 0, 1023, 0, 255);
+	attackAdjust = map(analogRead(ATTACK_ADJ_PIN), 0, 1023, 0, 255);
 }
 
 void updateLEDs() {
