@@ -40,6 +40,9 @@ void setup() {
 	pinMode(BRAKE_OUTPUT_PIN, OUTPUT);
 	digitalWrite(BRAKE_OUTPUT_PIN, LOW);
 
+	// Enable pullup on reset pin
+	pinMode(11, INPUT_PULLUP);
+
 	// Set prescaler for TIMER1 to enable faster PWM
 	TCCR1B &= ~(bit(CS10) | bit(CS11) | bit(CS12)); // Clear CS10, CS11 and CD12
 	TCCR1B |= bit(CS10); // No prescaler
