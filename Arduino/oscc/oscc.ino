@@ -13,6 +13,7 @@ const int THROTTLE_LOW = 260;
 const int THROTTLE_HIGH = 760;
 const int THROTTLE_OUTPUT_PIN = 5;
 const int FULL_THROTTLE_LED_PIN = 10;
+const int RESTART_LED_PIN = 8;
 
 const int BRAKE_ADJ_PIN = A0;
 const int ATTACK_ADJ_PIN = A1;
@@ -26,8 +27,9 @@ int brake = 0;
 int brakeAdjust = 0;
 int attackAdjust = 0;
 
-long lastTick = millis();
-long lastDebugTick = millis();
+long startTime = millis();
+long lastTick = startTime;
+long lastDebugTick = startTime;
 
 void setup() {
 	if (DEBUG)
@@ -42,6 +44,10 @@ void setup() {
 
 	// Enable pullup on reset pin
 	pinMode(11, INPUT_PULLUP);
+
+	// Restard indicator
+	pinMode(RESTART_LED_PIN, OUTPUT);
+	digitalWrite(RESTART_LED_PIN, HIGH);
 
 	// Set prescaler for TIMER1 to enable faster PWM
 	TCCR1B &= ~(bit(CS10) | bit(CS11) | bit(CS12)); // Clear CS10, CS11 and CD12
@@ -103,6 +109,10 @@ void updatePots() {
 
 void updateLEDs() {
 	digitalWrite(FULL_THROTTLE_LED_PIN, throttle == 255);
+
+	// Turn off restart led after one second
+	if (startTime + 125 < millis())
+		digitalWrite(RESTART_LED_PIN, LOW);
 }
 
 /* Prints sensor values and output values to the Serial Monitor */
