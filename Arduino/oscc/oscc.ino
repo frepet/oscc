@@ -17,7 +17,7 @@ const int RESTART_LED_PIN = 8;
 
 const int BRAKE_ADJ_PIN = A0;
 const int ATTACK_ADJ_PIN = A1;
-const int TRACTION_ADJ_PIN = A2; // Unused
+const int TRACTION_ADJ_PIN = A2;
 const int BRAKE_OUTPUT_PIN = 6;
 
 int throttleIn = 0;
@@ -26,6 +26,11 @@ int brake = 0;
 
 int brakeAdjust = 0;
 int attackAdjust = 0;
+int tractionAdjust = 0;
+
+// Settings for traction control
+int tractionM = 64; // 0-255
+float tractionD = (255 + tractionM) / log(255);
 
 long startTime = millis();
 long lastTick = startTime;
@@ -80,7 +85,11 @@ void loop() {
 void safeForward() {
 	brake = 0;
 	analogWrite(BRAKE_OUTPUT_PIN, brake);
-	throttle = map(throttleIn, 0, 255, attackAdjust, 255);
+	int newThrottle = map(throttleIn, 0, 255, attackAdjust, 255);
+	throttle = constrain(
+			min(newThrottle, throttle + exp((tractionAdjust + tractionM) / tractionD)),
+			0,
+			255);
 	delay(1);
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
 }
@@ -105,6 +114,7 @@ void getThrottle() {
 void updatePots() {
 	brakeAdjust = map(analogRead(BRAKE_ADJ_PIN), 0, 1023, 0, 255);
 	attackAdjust = map(analogRead(ATTACK_ADJ_PIN), 0, 1023, 0, 255);
+	tractionAdjust = map(analogRead(TRACTION_ADJ_PIN), 0, 1023, 0, 255);
 }
 
 void updateLEDs() {
