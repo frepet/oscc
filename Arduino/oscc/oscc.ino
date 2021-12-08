@@ -88,7 +88,7 @@ void safeForward() {
 	int newThrottle = map(throttleIn, 0, 255, attackAdjust, 255);
 	throttle = constrain(
 			min(newThrottle, throttle + exp((tractionAdjust + tractionM) / tractionD)),
-			0,
+			attackAdjust,
 			255);
 	delay(1);
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
