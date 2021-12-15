@@ -1,4 +1,4 @@
-# The Open Sloc Car Controller Project
+# The Open Slot Car Controller Project
 OSCC has the goal to provide a cheap option to hobby-grade slot car controllers.
 
 ## Description

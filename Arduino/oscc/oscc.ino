@@ -98,7 +98,7 @@ void safeForward() {
 void safeBrake() {
 	throttle = 0;
 	analogWrite(THROTTLE_OUTPUT_PIN, throttle);
-	brake = brakeAdjust;
+	brake = log(brakeAdjust) * 32 / log(2);
 	delay(1);
 	analogWrite(BRAKE_OUTPUT_PIN, brake);
 }
