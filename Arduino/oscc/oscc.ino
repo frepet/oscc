@@ -3,23 +3,38 @@
  *
  * @author Fredrik Peteri (fredrik@peteri.se)
  */
+#include <EEPROM.h>
 
 const bool DEBUG = false;
 const long DEBUG_DELAY = 50; // In milliseconds
 const int TICK_TIME = 10; // In milliseconds
 
 const int THROTTLE_INPUT_PIN = A7;
-const int THROTTLE_LOW = 260;
-const int THROTTLE_HIGH = 760;
 const int THROTTLE_OUTPUT_PIN = 5;
 const int FULL_THROTTLE_LED_PIN = 10;
 const int RESTART_LED_PIN = 8;
+const int CALIBRATION_PIN = 4;
+const int THROTTLE_HIGH_DEADZONE = 75;
+const int THROTTLE_LOW_DEADZONE = 25;
 
 const int BRAKE_ADJ_PIN = A0;
 const int ATTACK_ADJ_PIN = A1;
 const int TRACTION_ADJ_PIN = A2;
 const int BRAKE_OUTPUT_PIN = 6;
 
+/* Update an int in EEPROM */
+void updateEEPROM(int addr, int val) { 
+  EEPROM.update(addr, val >> 8);
+  EEPROM.update(addr + 1, val & 0xFF);
+}
+
+/* Read an int from EEPROM */
+int readEEPROM(int addr) {
+  return (EEPROM.read(addr) << 8) + EEPROM.read(addr + 1);
+}
+
+int throttle_low = readEEPROM(0);
+int throttle_high = readEEPROM(2);
 int throttleIn = 0;
 int throttle = 0;
 int brake = 0;
@@ -46,6 +61,8 @@ void setup() {
 	pinMode(FULL_THROTTLE_LED_PIN, OUTPUT);
 	pinMode(BRAKE_OUTPUT_PIN, OUTPUT);
 	digitalWrite(BRAKE_OUTPUT_PIN, LOW);
+  
+  pinMode(CALIBRATION_PIN, INPUT_PULLUP);
 
 	// Enable pullup on reset pin
 	pinMode(11, INPUT_PULLUP);
@@ -78,6 +95,10 @@ void loop() {
 		lastDebugTick = millis();
 	}
 
+  if (digitalRead(CALIBRATION_PIN) == LOW) {
+    calibrate();
+  }
+
 	updateLEDs();
 }
 
@@ -105,8 +126,8 @@ void safeBrake() {
 
 /* Very custom function to get a linear value 0-255 from the controller hall sensor */
 void getThrottle() {
-	int raw = constrain(analogRead(THROTTLE_INPUT_PIN), THROTTLE_LOW, THROTTLE_HIGH) - THROTTLE_LOW;
-	raw = constrain(cbrt(map(raw, 0, THROTTLE_HIGH - THROTTLE_LOW, 0, 1000000)), 14, 100);
+	int raw = constrain(analogRead(THROTTLE_INPUT_PIN), throttle_low, throttle_high) - throttle_low;
+	raw = constrain(cbrt(map(raw, 0, throttle_high - throttle_low, 0, 1000000)), 14, 100);
 	throttleIn = map(raw, 14, 100, 0, 255);
 }
 
@@ -117,12 +138,30 @@ void updatePots() {
 	tractionAdjust = map(analogRead(TRACTION_ADJ_PIN), 0, 1023, 0, 255);
 }
 
+/* Updates FULL_THROTTLE_LED and RESTART_LED */
 void updateLEDs() {
 	digitalWrite(FULL_THROTTLE_LED_PIN, throttle == 255);
 
 	// Turn off restart led after one second
 	if (startTime + 125 < millis())
 		digitalWrite(RESTART_LED_PIN, LOW);
+}
+
+/* If CALIBRATION_PIN is LOW then store new min and max values. */
+void calibrate() {
+  throttle_low = 1023;
+  throttle_high = 0;
+  int throttle_pos = analogRead(THROTTLE_INPUT_PIN);
+  while (digitalRead(CALIBRATION_PIN) == LOW) {
+    throttle_low = min(throttle_pos, throttle_low);
+    throttle_high = max(throttle_pos, throttle_high);
+    delay(10);
+    throttle_pos = analogRead(THROTTLE_INPUT_PIN);
+  }
+  throttle_low += THROTTLE_LOW_DEADZONE;
+  throttle_high -= THROTTLE_HIGH_DEADZONE;
+  updateEEPROM(0, throttle_low);
+  updateEEPROM(2, throttle_high);
 }
 
 /* Prints sensor values and output values to the Serial Monitor */
